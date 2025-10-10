@@ -11,7 +11,7 @@
     :root { --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#9ca3af; --accent:#22c55e; --warn:#f59e0b; --danger:#ef4444; --hi:#38bdf8; }
     *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
     header{position:sticky;top:0;background:linear-gradient(180deg,#0f172a,rgba(15,23,42,.85));backdrop-filter:blur(6px);z-index:2;padding:12px 16px;border-bottom:1px solid #1f2937}
-    h1{margin:0;font-size:18px} .container{padding:16px;max-width:980px;margin:0 auto}
+    h1{margin:0;font-size:18px} .container{padding:16px;max-width:1080px;margin:0 auto}
     nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
     nav button{background:#1f2937;color:var(--ink);border:1px solid #374151;border-radius:12px;padding:8px 10px;cursor:pointer}
     nav button.active{background:#374151}
@@ -22,46 +22,108 @@
     .btn{display:inline-block;background:var(--accent);border:none;color:#052e16;padding:10px 12px;border-radius:10px;font-weight:700;cursor:pointer}
     .btn.muted{background:#374151;color:#e5e7eb} .btn.warn{background:var(--warn);color:#451a03} .btn.danger{background:var(--danger);color:#450a0a}
     .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #334155;color:#9ca3af;font-size:12px;margin-left:6px}
-    .timer{font-size:48px;font-weight:800;text-align:center;margin:8px 0}
     .small{font-size:12px;color:var(--muted)}
     .cols2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media (max-width:780px){.row,.row3,.cols2{grid-template-columns:1fr}}
+    @media (max-width:900px){.row,.row3,.cols2{grid-template-columns:1fr}}
     .checklist{list-style:none;margin:0;padding:0}
     .checklist li{padding:10px 8px;border-bottom:1px solid #23314b}
     .checklist label{display:flex;gap:12px;align-items:center}
     .checklist input[type=checkbox]{width:18px;height:18px}
     .days{display:grid;grid-template-columns:1fr 1fr;gap:16px}
-    @media (max-width:980px){.days{grid-template-columns:1fr}}
+    @media (max-width:1080px){.days{grid-template-columns:1fr}}
     .tag{display:inline-block;padding:2px 8px;border-radius:999px;font-size:12px;border:1px solid #334155;margin-left:6px}
     .hi{border-color:#2563eb;color:#93c5fd}
     .mod{border-color:#a16207;color:#fde68a}
     .low{border-color:#16a34a;color:#86efac}
-    .meal-row{display:flex;gap:10px;align-items:flex-start;margin:10px 0}
-    .meal-time{width:90px;color:var(--muted)}
+
+    /* Nutrition alignment fix: grid rows with explicit columns */
+    .meal-row{display:grid;grid-template-columns:84px 24px 1fr;column-gap:10px;align-items:start;margin:8px 0}
+    .meal-time{color:var(--muted);text-align:right;padding-right:4px}
+    .meal-row input[type=checkbox]{margin-top:2px}
+
+    /* Weekly plan cards */
+    .wk{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+    @media (max-width:1080px){.wk{grid-template-columns:1fr}}
+    .do{list-style:none;margin:0;padding:0}
+    .do li{padding:6px 8px;border-left:3px solid #334155;margin:6px 0;background:#0b1220;border-radius:8px}
+    .dotag{font-size:12px;margin-left:8px}
   </style>
 </head>
 <body>
 <header>
   <h1>Dopey Planner <span class="pill">Offline</span></h1>
   <nav>
-    <button data-tab="progress" class="active">Progress</button>
+    <button data-tab="plan" class="active">Plan</button>
+    <button data-tab="nutrition">Nutrition</button>
     <button data-tab="workouts">Workouts</button>
     <button data-tab="timers">Core Timer</button>
-    <button data-tab="plan">Plan</button>
-    <button data-tab="nutrition">Nutrition</button>
+    <button data-tab="progress">Progress</button>
     <button data-tab="backup">Backup</button>
   </nav>
 </header>
 
 <main class="container">
-  <section id="progress" class="tab">
+  <!-- PLAN (now includes full weekly schedule) -->
+  <section id="plan" class="tab">
+    <div class="card">
+      <h2>This Week — Training & Fuel (Oct 13–19)</h2>
+      <p class="small">Tue/Wed office days. Thu dinner = Chick-fil-A. Tempo & long sessions start ~5–6 AM. Shakes = BPN only; liquids = water/whole milk; PB Fit anywhere helpful.</p>
+    </div>
+    <div class="wk" id="weekPlan"></div>
+
+    <div class="card">
+      <h2>Targets</h2>
+      <ul>
+        <li><b>Default Cut:</b> 2550 kcal — ~190g P / 290g C / 70g F</li>
+        <li><b>Rest Day:</b> ~2300 kcal (lower carbs)</li>
+        <li><b>High Output:</b> 2750–3100 kcal depending on session (carb-priority)</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- NUTRITION -->
+  <section id="nutrition" class="tab" style="display:none">
+    <div class="card">
+      <h2>Nutrition — Sample Week</h2>
+      <p class="small">Tap checkboxes as you complete meals. Colors: <span class="tag hi">High Carb</span> <span class="tag mod">Moderate</span> <span class="tag low">Lower Carb</span></p>
+    </div>
+    <div class="days" id="days"></div>
+  </section>
+
+  <!-- WORKOUTS -->
+  <section id="workouts" class="tab" style="display:none">
+    <div class="card">
+      <h2>Strength + Core (A / B)</h2>
+      <div class="cols2">
+        <div><h3>Session A</h3><ul id="sessionA" class="checklist"></ul></div>
+        <div><h3>Session B</h3><ul id="sessionB" class="checklist"></ul></div>
+      </div>
+    </div>
+    <div class="card"><h2>Core Focus Booster</h2><ul id="booster" class="checklist"></ul></div>
+  </section>
+
+  <!-- TIMERS -->
+  <section id="timers" class="tab" style="display:none">
+    <div class="card">
+      <h2>Core Booster Interval Timer</h2>
+      <div class="row3">
+        <div><label>Work (sec)</label><input id="workSec" type="number" value="40"></div>
+        <div><label>Rest (sec)</label><input id="restSec" type="number" value="15"></div>
+        <div><label>Rounds</label><input id="rounds" type="number" value="2" min="1" max="6"></div>
+      </div>
+      <div class="timer" id="timer">00:40</div><div id="phase" class="small">Ready</div>
+      <button class="btn" id="startTimer">Start</button>
+      <button class="btn muted" id="stopTimer">Stop</button>
+      <button class="btn warn" id="resetTimer">Reset</button>
+    </div>
+  </section>
+
+  <!-- PROGRESS -->
+  <section id="progress" class="tab" style="display:none">
     <div class="card">
       <h2>Weekly Progress</h2>
       <div class="row">
-        <div>
-          <label>Week #</label>
-          <input id="week" type="number" min="1" max="52" placeholder="e.g., 1">
-        </div>
+        <div><label>Week #</label><input id="week" type="number" min="1" max="52" placeholder="e.g., 1"></div>
         <div>
           <label>Week dates</label>
           <div class="row">
@@ -87,55 +149,7 @@
     </div>
   </section>
 
-  <section id="workouts" class="tab" style="display:none">
-    <div class="card">
-      <h2>Strength + Core (A / B)</h2>
-      <div class="cols2">
-        <div><h3>Session A</h3><ul id="sessionA" class="checklist"></ul></div>
-        <div><h3>Session B</h3><ul id="sessionB" class="checklist"></ul></div>
-      </div>
-    </div>
-    <div class="card"><h2>Core Focus Booster</h2><ul id="booster" class="checklist"></ul></div>
-  </section>
-
-  <section id="timers" class="tab" style="display:none">
-    <div class="card">
-      <h2>Core Booster Interval Timer</h2>
-      <div class="row3">
-        <div><label>Work (sec)</label><input id="workSec" type="number" value="40"></div>
-        <div><label>Rest (sec)</label><input id="restSec" type="number" value="15"></div>
-        <div><label>Rounds</label><input id="rounds" type="number" value="2" min="1" max="6"></div>
-      </div>
-      <div class="timer" id="timer">00:40</div><div id="phase" class="small">Ready</div>
-      <button class="btn" id="startTimer">Start</button>
-      <button class="btn muted" id="stopTimer">Stop</button>
-      <button class="btn warn" id="resetTimer">Reset</button>
-    </div>
-  </section>
-
-  <section id="plan" class="tab" style="display:none">
-    <div class="card"><h2>Calories & Macros</h2>
-      <ul><li><b>Maintenance:</b> ~2850 kcal (conservative)</li>
-      <li><b>Cut:</b> 2550 kcal — 190g P / 290g C / 70g F</li>
-      <li><b>Rest:</b> 2300 kcal — 190g P / 230g C / 70g F</li>
-      <li><b>Long Run:</b> 2850–3100 kcal — carb-priority</li></ul>
-    </div>
-    <div class="card"><h2>Meal Timing (11 AM Start)</h2>
-      <ul><li>11:00 — Meal 1 (Protein + Carb)</li>
-      <li>14:30 — Snack (Protein + Carb)</li>
-      <li>18:30 — Meal 2 (Protein + Carb + Fat)</li>
-      <li>20:30 — Optional Snack (Protein + Fat)</li></ul>
-    </div>
-  </section>
-
-  <section id="nutrition" class="tab" style="display:none">
-    <div class="card">
-      <h2>Nutrition — Sample Week (Oct 13–19)</h2>
-      <p class="small">Tue/Wed office days. Thu dinner = Chick-fil-A. Protein = BPN only. Liquids = water or whole milk. PB Fit or PB used liberally.</p>
-    </div>
-    <div class="days" id="days"></div>
-  </section>
-
+  <!-- BACKUP -->
   <section id="backup" class="tab" style="display:none">
     <div class="card">
       <h2>Backup / Restore</h2>
@@ -148,12 +162,183 @@
 </main>
 
 <script>
+// SW
 if ('serviceWorker' in navigator) { window.addEventListener('load', () => navigator.serviceWorker.register('service-worker.js')); }
+// Tabs
 const tabs = document.querySelectorAll('nav button');
 const sections = document.querySelectorAll('main .tab');
 tabs.forEach(btn => btn.addEventListener('click', () => { tabs.forEach(b => b.classList.remove('active')); btn.classList.add('active'); const id = btn.dataset.tab; sections.forEach(s => s.style.display = (s.id===id) ? 'block' : 'none'); }));
 
-// Progress
+// -------- WEEKLY PLAN (TRAIN + FUEL) --------
+const weekPlan = [
+  { day:"Mon", tag:"hi", kcal:"~2750", notes:"Z2 45' + Strength A",
+    do:[
+      "Run: Zone 2, 45 minutes",
+      "Lift: Strength A (goblet SQ, RDL, step-ups, rows, carries)",
+      "Core: Dead bug / HKR (in session)"
+    ],
+    fuel:[
+      "11:00 Protein oats + PB Fit + banana",
+      "14:30 Chicken + rice + corn + BBQ",
+      "18:30 Sirloin + potatoes + greens",
+      "20:30 BPN shake (water) + PB Fit"
+    ]
+  },
+  { day:"Tue", tag:"low", kcal:"~2400", notes:"Office + Core Booster",
+    do:[
+      "Rest (no run)",
+      "Core Focus Booster (20–25 min)"
+    ],
+    fuel:[
+      "11:00 Turkey wrap + fruit",
+      "15:00 Yogurt + granola + PB Fit",
+      "18:30 93% beef + rice + salsa + avocado",
+      "20:30 BPN shake (water) + almonds"
+    ]
+  },
+  { day:"Wed", tag:"mod", kcal:"~2650", notes:"AM Z2 45' + PM Strength B (Office)",
+    do:[
+      "Run: Zone 2, 45 minutes (AM)",
+      "Lift: Strength B (bench, pulldown, row, split squat, anti-rot) (PM)"
+    ],
+    fuel:[
+      "11:00 Chicken pasta + marinara (blended spinach)",
+      "15:00 BPN shake + banana",
+      "18:00 Toast + PB Fit + 1/2 scoop BPN (pre-lift)",
+      "20:00 Chicken + mashed potatoes + peas (post-lift)"
+    ]
+  },
+  { day:"Thu", tag:"hi", kcal:"~2850", notes:"Tempo 45' (5 AM) • Chick-fil-A • Kickball 7:30",
+    do:[
+      "Run: Tempo 45 minutes (5–6 AM window)",
+      "Core Focus Booster (optional AM)",
+      "Sport: Kickball 7:30 PM"
+    ],
+    fuel:[
+      "04:30 1/2 banana + BPN shake (water) pre-run",
+      "07:00 Toast + PB Fit + honey + milk post-run",
+      "11:00 Chicken rice bowl",
+      "15:00 Yogurt + granola + PB Fit",
+      "18:30 Chick-fil-A: Spicy Sandwich + Fries (or Grilled Nuggets + Side Salad)",
+      "20:30 BPN shake (water or milk)"
+    ]
+  },
+  { day:"Fri", tag:"low", kcal:"~2350", notes:"Rest + Core Booster",
+    do:[
+      "Rest (no run)",
+      "Core Focus Booster (20–25 min)"
+    ],
+    fuel:[
+      "11:00 Egg + potato bowl + cheese + salsa",
+      "14:30 Chicken Caesar wrap + apple",
+      "18:30 Beef chili (beans + tomato + shredded carrot)",
+      "20:30 BPN shake (water) + PB Fit"
+    ]
+  },
+  { day:"Sat", tag:"hi", kcal:"~2800", notes:"Walk 7 mi (5 AM) + Softball 12 & 1",
+    do:[
+      "Walk or Z1–2 run: 7 miles (AM)",
+      "Softball games: 12 PM & 1 PM (eat pre or post only)"
+    ],
+    fuel:[
+      "04:30 1/2 banana + BPN shake (water) pre-walk",
+      "07:00 Breakfast burrito (eggs + turkey sausage + potatoes)",
+      "10:30 Chicken rice bowl + milk (pre-games)",
+      "14:00 BPN shake + banana + PB Fit (post-games)",
+      "18:30 Pasta + lean meat sauce",
+      "20:30 Yogurt + PB Fit + granola"
+    ]
+  },
+  { day:"Sun", tag:"hi", kcal:"~3100", notes:"Long run 17 miles (5 AM)",
+    do:[
+      "Run: 17 miles (fuel mid-run 30–45 g carb/hr)",
+      "Recovery: light mobility later"
+    ],
+    fuel:[
+      "04:30 Banana + BPN shake (water) pre-run",
+      "During Gels + electrolytes 30–45 g carb/hr",
+      "09:00 BPN shake (whole milk) + 1/2 cup oats + PB Fit",
+      "11:30 Eggs + pancakes + fruit + chicken sausage",
+      "15:00 Yogurt + PB Fit + granola",
+      "18:30 Steak + rice + corn + sauce",
+      "20:30 BPN shake (water) + PB Fit"
+    ]
+  }
+];
+
+function renderWeek(){
+  const wrap = document.getElementById('weekPlan'); wrap.innerHTML='';
+  const labels = {hi:'High Carb', mod:'Moderate', low:'Lower Carb'};
+  weekPlan.forEach(d=>{
+    const card = document.createElement('div'); card.className='card';
+    const cls = d.tag==='hi'?'hi':(d.tag==='mod'?'mod':'low');
+    const head = document.createElement('div');
+    head.innerHTML = `<h3>${d.day} <span class="tag ${cls}">${labels[d.tag]}</span> <span class="small">${d.kcal} • ${d.notes}</span></h3>`;
+    card.appendChild(head);
+
+    const todo = document.createElement('div'); todo.innerHTML = `<h4>Workouts</h4>`;
+    const ul = document.createElement('ul'); ul.className='do';
+    d.do.forEach(x=>{ const li=document.createElement('li'); li.textContent = x; ul.appendChild(li); });
+    todo.appendChild(ul); card.appendChild(todo);
+
+    const fuel = document.createElement('div'); fuel.innerHTML = `<h4>Fuel (key meals)</h4>`;
+    const ful = document.createElement('ul'); ful.className='do';
+    d.fuel.forEach(x=>{ const li=document.createElement('li'); li.textContent = x; ful.appendChild(li); });
+    fuel.appendChild(ful); card.appendChild(fuel);
+
+    wrap.appendChild(card);
+  });
+}
+renderWeek();
+
+// -------- NUTRITION (alignment improved) --------
+const planNutrition = weekPlan.map(d=>({day:d.day, tag:d.tag, kcal:d.kcal, notes:d.notes, meals:d.fuel.map(s=>{
+  // split "time text" into time + text if possible
+  const i = s.indexOf(' '); if(i>0 && s[1]!==':'){ return [s.slice(0,i), s.slice(i+1)]; } else { return ["", s]; }
+})}));
+
+function renderNutrition(){
+  const wrap = document.getElementById('days'); wrap.innerHTML='';
+  const labels = {hi:'High Carb', mod:'Moderate', low:'Lower Carb'};
+  planNutrition.forEach((d,i)=>{
+    const card = document.createElement('div'); card.className='card';
+    const cls = d.tag==='hi'?'hi':(d.tag==='mod'?'mod':'low');
+    card.innerHTML = `<h3>${d.day} <span class="tag ${cls}">${labels[d.tag]}</span> <span class="small">${d.kcal} • ${d.notes}</span></h3>`;
+    d.meals.forEach((m, idx)=>{
+      const idc = `nut-${i}-${idx}`;
+      const state = JSON.parse(localStorage.getItem('nutrition-done')||'{}');
+      const checked = state[idc] ? 'checked' : '';
+      const row = document.createElement('div'); row.className='meal-row';
+      row.innerHTML = `<div class="meal-time">${m[0]}</div>
+        <input type="checkbox" id="${idc}" ${checked}>
+        <div>${m[1]}</div>`;
+      card.appendChild(row);
+      row.querySelector('input').addEventListener('change',(e)=>{
+        const st = JSON.parse(localStorage.getItem('nutrition-done')||'{}'); st[idc]=e.target.checked; localStorage.setItem('nutrition-done', JSON.stringify(st));
+      });
+    });
+    wrap.appendChild(card);
+  });
+}
+renderNutrition();
+
+// -------- WORKOUT CHECKLISTS --------
+const wkKeyA='dopey-sessionA', wkKeyB='dopey-sessionB', wkKeyBooster='dopey-booster';
+const sessionA = ["Goblet Squat — 3x10","Romanian Deadlift — 3x10","Step-ups — 2x10 each","Plank Row (Renegade) — 3x12","Dead Bug — 3x12","Hanging Knee Raise — 3x10","Farmer Carry — 2x30s"];
+const sessionB = ["Dumbbell Bench Press — 3x10","Lat Pulldown — 3x10","Seated Row — 3x10","Bulgarian Split Squat — 2x10 each","Side Plank w/ Hip Lift — 3x30s/side","Pallof Press — 3x12","Stir-the-Pot / Ball Rollout — 3x12"];
+const booster = ["Dead Bug — 40s","Side Plank Hip Lifts (R) — 40s","Side Plank Hip Lifts (L) — 40s","Bird Dog (Alt) — 40s","Reverse Crunch / Toe Taps — 40s","Plank Shoulder Taps — 40s"];
+function loadList(key){ try{ return JSON.parse(localStorage.getItem(key))||{} }catch{ return {} } }
+function renderChecklist(id, items, key){
+  const ul = document.getElementById(id); ul.innerHTML = ''; const state = loadList(key);
+  items.forEach((txt, idx)=>{
+    const li = document.createElement('li'); const idc = `${key}-${idx}`;
+    li.innerHTML = `<label><input type="checkbox" id="${idc}" ${state[idx]?'checked':''}><span>${txt}</span></label>`; ul.appendChild(li);
+    li.querySelector('input').addEventListener('change', (e)=>{ const st = loadList(key); st[idx]=e.target.checked; localStorage.setItem(key, JSON.stringify(st)); });
+  });
+}
+renderChecklist('sessionA', sessionA, wkKeyA); renderChecklist('sessionB', sessionB, wkKeyB); renderChecklist('booster', booster, wkKeyBooster);
+
+// -------- PROGRESS --------
 const storeKey = 'dopey-progress';
 function loadProgress(){ try { return JSON.parse(localStorage.getItem(storeKey)) || []; } catch { return []; } }
 function saveProgress(rows){ localStorage.setItem(storeKey, JSON.stringify(rows)); }
@@ -180,103 +365,7 @@ document.getElementById('saveProgress').addEventListener('click', ()=>{
 });
 document.getElementById('baseline').addEventListener('change', renderHistory);
 
-// Workouts
-const wkKeyA='dopey-sessionA', wkKeyB='dopey-sessionB', wkKeyBooster='dopey-booster';
-const sessionA = ["Goblet Squat — 3x10","Romanian Deadlift — 3x10","Step-ups — 2x10 each","Plank Row (Renegade) — 3x12","Dead Bug — 3x12","Hanging Knee Raise — 3x10","Farmer Carry — 2x30s"];
-const sessionB = ["Dumbbell Bench Press — 3x10","Lat Pulldown — 3x10","Seated Row — 3x10","Bulgarian Split Squat — 2x10 each","Side Plank w/ Hip Lift — 3x30s/side","Pallof Press — 3x12","Stir-the-Pot / Ball Rollout — 3x12"];
-const booster = ["Dead Bug — 40s","Side Plank Hip Lifts (R) — 40s","Side Plank Hip Lifts (L) — 40s","Bird Dog (Alt) — 40s","Reverse Crunch / Toe Taps — 40s","Plank Shoulder Taps — 40s"];
-function loadList(key){ try{ return JSON.parse(localStorage.getItem(key))||{} }catch{ return {} } }
-function saveList(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
-function renderChecklist(id, items, key){
-  const ul = document.getElementById(id); ul.innerHTML = ''; const state = loadList(key);
-  items.forEach((txt, idx)=>{
-    const li = document.createElement('li'); const idc = `${key}-${idx}`;
-    li.innerHTML = `<label><input type="checkbox" id="${idc}" ${state[idx]?'checked':''}><span>${txt}</span></label>`; ul.appendChild(li);
-    li.querySelector('input').addEventListener('change', (e)=>{ const st = loadList(key); st[idx]=e.target.checked; saveList(key, st); });
-  });
-}
-renderChecklist('sessionA', sessionA, wkKeyA); renderChecklist('sessionB', sessionB, wkKeyB); renderChecklist('booster', booster, wkKeyBooster);
-
-// Nutrition
-const plan = [
-  { day:"Mon", tag:"hi", kcal:2750, notes:"Z2 + Strength A", meals:[
-    ["11:00","Protein oats + PB Fit + banana"],
-    ["14:30","Chicken + rice + corn + BBQ"],
-    ["18:30","Sirloin + potatoes + green beans/peas"],
-    ["20:30","BPN shake (water) + PB Fit"],
-  ]},
-  { day:"Tue", tag:"low", kcal:2400, notes:"Office + Core Booster", meals:[
-    ["11:00","Turkey wrap + cheese + spinach + fruit"],
-    ["15:00","Greek yogurt + granola + PB Fit"],
-    ["18:30","93% beef + rice + salsa + avocado"],
-    ["20:30","BPN shake (water) + almonds"],
-  ]},
-  { day:"Wed", tag:"mod", kcal:2650, notes:"Z2 AM + Strength B PM (Office)", meals:[
-    ["11:00","Chicken pasta + marinara (blended spinach)"],
-    ["15:00","BPN shake + banana"],
-    ["18:00","Toast + PB Fit + 1/2 scoop BPN (pre-lift)"],
-    ["20:00","Chicken + mashed potatoes + peas (post-lift)"],
-  ]},
-  { day:"Thu", tag:"hi", kcal:2850, notes:"Tempo 5am + Chick-fil-A + Kickball 7:30", meals:[
-    ["04:30","1/2 banana + BPN shake (water) pre-run"],
-    ["07:00","Toast + PB Fit + honey + milk post-run"],
-    ["11:00","Chicken rice bowl"],
-    ["15:00","Yogurt + granola + PB Fit"],
-    ["18:30","Chick-fil-A: Spicy Chicken Sandwich + Fries (or Grilled Nuggets + Side Salad)"],
-    ["20:30","BPN shake (water or milk)"],
-  ]},
-  { day:"Fri", tag:"low", kcal:2350, notes:"Rest + Core Booster", meals:[
-    ["11:00","Egg + potato bowl + cheese + salsa"],
-    ["14:30","Chicken Caesar wrap + apple"],
-    ["18:30","Beef chili (beans + tomato + shredded carrot)"],
-    ["20:30","BPN shake (water) + PB Fit"],
-  ]},
-  { day:"Sat", tag:"hi", kcal:2800, notes:"Walk 5am + Softball 12&1 (eat pre/post)", meals:[
-    ["04:30","1/2 banana + BPN shake (water) pre-walk"],
-    ["07:00","Breakfast burrito (eggs + turkey sausage + potatoes)"],
-    ["10:30","Chicken rice bowl + milk (pre-games)"],
-    ["14:00","BPN shake + banana + PB Fit (post-games)"],
-    ["18:30","Pasta + lean meat sauce"],
-    ["20:30","Yogurt + PB Fit + granola"],
-  ]},
-  { day:"Sun", tag:"hi", kcal:3100, notes:"Long run 17 mi 5am", meals:[
-    ["04:30","Banana + BPN shake (water) pre-run"],
-    ["During","Gels + electrolytes (30–45 g carb/hr)"],
-    ["09:00","BPN shake (whole milk) + 1/2 cup oats + PB Fit"],
-    ["11:30","Eggs + pancakes + fruit + chicken sausage"],
-    ["15:00","Yogurt + PB Fit + granola"],
-    ["18:30","Steak + rice + corn + sauce"],
-    ["20:30","BPN shake (water) + PB Fit"],
-  ]},
-];
-function renderDays(){
-  const wrap = document.getElementById('days'); wrap.innerHTML='';
-  const labels = {hi:'High Carb', mod:'Moderate', low:'Lower Carb'};
-  plan.forEach((d,i)=>{
-    const card = document.createElement('div'); card.className='card';
-    const cls = d.tag==='hi'?'hi':(d.tag==='mod'?'mod':'low');
-    card.innerHTML = `<h3>${d.day} <span class="tag ${cls}">${labels[d.tag]}</span> <span class="small">~${d.kcal} kcal • ${d.notes}</span></h3>`;
-    d.meals.forEach((m, idx)=>{
-      const idc = `nut-${i}-${idx}`;
-      const state = JSON.parse(localStorage.getItem('nutrition-done')||'{}');
-      const checked = state[idc] ? 'checked' : '';
-      const row = document.createElement('div'); row.className='meal-row';
-      row.innerHTML = `<div class="meal-time">${m[0]}</div>
-        <label style="display:flex;gap:10px;align-items:flex-start;flex:1">
-          <input type="checkbox" id="${idc}" ${checked}>
-          <div>${m[1]}</div>
-        </label>`;
-      card.appendChild(row);
-      row.querySelector('input').addEventListener('change',(e)=>{
-        const st = JSON.parse(localStorage.getItem('nutrition-done')||'{}'); st[idc]=e.target.checked; localStorage.setItem('nutrition-done', JSON.stringify(st));
-      });
-    });
-    wrap.appendChild(card);
-  });
-}
-renderDays();
-
-// Timer
+// -------- TIMER --------
 let t=null, mode='work', remain=40, round=1;
 function updateTimer(){ const m=String(Math.floor(remain/60)).padStart(2,'0'); const s=String(remain%60).padStart(2,'0'); document.getElementById('timer').textContent=`${m}:${s}`;}
 function stopTimer(){ if(t){ clearInterval(t); t=null; } }
@@ -285,9 +374,8 @@ function tick(){ remain--; if(remain<=0){ if(mode==='work'){ mode='rest'; remain
 document.getElementById('startTimer').addEventListener('click', ()=>{ if(t) return; document.getElementById('phase').textContent=`Work — Round ${round}`; t=setInterval(tick,1000); });
 document.getElementById('stopTimer').addEventListener('click', stopTimer);
 document.getElementById('resetTimer').addEventListener('click', resetTimer);
-resetTimer();
 
-// Backup/Restore
+// -------- BACKUP --------
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const data = {
     baseline: Number(document.getElementById('baseline').value)||2850,
@@ -303,12 +391,12 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 document.getElementById('importFile').addEventListener('change', (e)=>{
   const f = e.target.files[0]; if(!f) return; const fr = new FileReader();
   fr.onload = () => { try{ const d = JSON.parse(fr.result); if(d.baseline) document.getElementById('baseline').value = d.baseline;
-      if(Array.isArray(d.progress)) localStorage.setItem(storeKey, JSON.stringify(d.progress));
+      if(Array.isArray(d.progress)) localStorage.setItem('dopey-progress', JSON.stringify(d.progress));
       if(d.A) localStorage.setItem('dopey-sessionA', JSON.stringify(d.A));
       if(d.B) localStorage.setItem('dopey-sessionB', JSON.stringify(d.B));
       if(d.booster) localStorage.setItem('dopey-booster', JSON.stringify(d.booster));
       if(d.nutritionDone) localStorage.setItem('nutrition-done', JSON.stringify(d.nutritionDone));
-      renderHistory(); renderChecklist('sessionA', sessionA, wkKeyA); renderChecklist('sessionB', sessionB, wkKeyB); renderChecklist('booster', booster, wkKeyBooster); renderDays(); alert('Import complete!'); }
+      renderHistory(); renderWeek(); renderNutrition(); alert('Import complete!'); }
     catch(err){ alert('Invalid file.'); } };
   fr.readAsText(f);
 });
