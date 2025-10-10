@@ -1,0 +1,390 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Dopey Planner</title>
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#0f172a">
+  <link rel="icon" href="icons/icon-192.png">
+  <style>
+    :root { --bg:#0f172a; --card:#111827; --ink:#e5e7eb; --muted:#9ca3af; --accent:#22c55e; --warn:#f59e0b; --danger:#ef4444; }
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial}
+    header{position:sticky;top:0;background:linear-gradient(180deg,#0f172a,rgba(15,23,42,.8));backdrop-filter:blur(6px);z-index:2;padding:12px 16px;border-bottom:1px solid #1f2937}
+    h1{margin:0;font-size:18px} .container{padding:16px;max-width:900px;margin:0 auto}
+    nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+    nav button{background:#1f2937;color:var(--ink);border:1px solid #374151;border-radius:12px;padding:8px 10px;cursor:pointer}
+    nav button.active{background:#374151}
+    .card{background:var(--card);border:1px solid #1f2937;border-radius:16px;padding:16px;margin:12px 0}
+    label{display:block;margin:8px 0 4px;color:var(--muted)} input,select,textarea{width:100%;padding:10px;border-radius:10px;border:1px solid #334155;background:#0b1220;color:var(--ink)}
+    table{width:100%;border-collapse:collapse} th,td{padding:8px;border-bottom:1px solid #23314b} th{color:var(--muted);text-align:left;font-weight:600}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:12px} .row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+    .btn{display:inline-block;background:var(--accent);border:none;color:#052e16;padding:10px 12px;border-radius:10px;font-weight:700;cursor:pointer}
+    .btn.muted{background:#374151;color:#e5e7eb} .btn.warn{background:var(--warn);color:#451a03} .btn.danger{background:var(--danger);color:#450a0a}
+    .pill{display:inline-block;padding:2px 8px;border-radius:999px;border:1px solid #334155;color:var(--muted);font-size:12px;margin-left:6px}
+    .timer{font-size:48px;font-weight:800;text-align:center;margin:8px 0}
+    .small{font-size:12px;color:var(--muted)}
+    footer{height:60px}
+    @media (max-width:680px){ .row,.row3{grid-template-columns:1fr} }
+  </style>
+</head>
+<body>
+<header>
+  <h1>Dopey Planner <span class="pill">Offline</span></h1>
+  <nav>
+    <button data-tab="progress" class="active">Progress</button>
+    <button data-tab="workouts">Workouts</button>
+    <button data-tab="timers">Core Timer</button>
+    <button data-tab="plan">Plan</button>
+    <button data-tab="backup">Backup</button>
+  </nav>
+</header>
+
+<main class="container">
+  <!-- Progress -->
+  <section id="progress" class="tab">
+    <div class="card">
+      <h2>Weekly Progress</h2>
+      <div class="row">
+        <div>
+          <label>Week #</label>
+          <input id="week" type="number" min="1" max="52" placeholder="e.g., 1">
+        </div>
+        <div>
+          <label>Date Range</label>
+          <input id="range" type="text" placeholder="e.g., Oct 13–Oct 19">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Weight (lb)</label>
+          <input id="weight" type="number" step="0.1">
+        </div>
+        <div>
+          <label>Avg Daily Calories</label>
+          <input id="cal" type="number" step="1">
+        </div>
+      </div>
+      <div class="row">
+        <div>
+          <label>Baseline (kcal)</label>
+          <input id="baseline" type="number" step="1" value="2850">
+          <div class="small">You can change this later if needed</div>
+        </div>
+        <div>
+          <label>Auto-calculated</label>
+          <div id="calc" class="small">Deficit & est fat loss appear after save</div>
+        </div>
+      </div>
+      <button class="btn" id="saveProgress">Save week</button>
+    </div>
+
+    <div class="card">
+      <h3>History</h3>
+      <table id="history">
+        <thead>
+          <tr><th>Week</th><th>Range</th><th>Weight</th><th>Avg kcal</th><th>Deficit</th><th>Est Fat Loss</th><th></th></tr>
+        </thead>
+        <tbody></tbody>
+      </table>
+      <div class="small">Deficit = Baseline − Avg kcal. Est Fat Loss = (Deficit × 7) ÷ 3500</div>
+    </div>
+  </section>
+
+  <!-- Workouts -->
+  <section id="workouts" class="tab" style="display:none">
+    <div class="card">
+      <h2>Strength + Core (A / B)</h2>
+      <p class="small">Check off as you complete.</p>
+      <div class="row">
+        <div>
+          <h3>Session A</h3>
+          <ul id="sessionA"></ul>
+        </div>
+        <div>
+          <h3>Session B</h3>
+          <ul id="sessionB"></ul>
+        </div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>Core Focus Booster</h2>
+      <ul id="booster"></ul>
+    </div>
+  </section>
+
+  <!-- Timers -->
+  <section id="timers" class="tab" style="display:none">
+    <div class="card">
+      <h2>Core Booster Interval Timer</h2>
+      <p class="small">40s work / 15s rest / 2–3 rounds</p>
+      <div class="row3">
+        <div>
+          <label>Work (sec)</label>
+          <input id="workSec" type="number" value="40">
+        </div>
+        <div>
+          <label>Rest (sec)</label>
+          <input id="restSec" type="number" value="15">
+        </div>
+        <div>
+          <label>Rounds</label>
+          <input id="rounds" type="number" value="2" min="1" max="6">
+        </div>
+      </div>
+      <div class="timer" id="timer">00:40</div>
+      <div id="phase" class="small">Ready</div>
+      <button class="btn" id="startTimer">Start</button>
+      <button class="btn muted" id="stopTimer">Stop</button>
+      <button class="btn warn" id="resetTimer">Reset</button>
+    </div>
+  </section>
+
+  <!-- Plan -->
+  <section id="plan" class="tab" style="display:none">
+    <div class="card">
+      <h2>Calories & Macros</h2>
+      <ul>
+        <li><b>Maintenance:</b> ~2850 kcal (conservative)</li>
+        <li><b>Cut (default):</b> 2550 kcal — 190g P / 290g C / 70g F</li>
+        <li><b>Rest:</b> 2300 kcal — 190g P / 230g C / 70g F</li>
+        <li><b>Long Run:</b> 2850–3000 kcal — carb-priority</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Meal Timing (11 AM Start)</h2>
+      <ul>
+        <li>11:00 — Meal 1 (Protein + Carb)</li>
+        <li>14:30 — Snack (Protein + Carb)</li>
+        <li>18:30 — Meal 2 (Protein + Carb + Fat)</li>
+        <li>20:30 — Optional Snack (Protein + Fat)</li>
+      </ul>
+    </div>
+    <div class="card">
+      <h2>Notes</h2>
+      <ul>
+        <li>Fuel long runs: 200–300 kcal pre, 30–60g carb/hour during.</li>
+        <li>Protein every meal (goal ~190g/day).</li>
+        <li>Hydration 120–140 oz/day; electrolytes for >90 min runs.</li>
+      </ul>
+    </div>
+  </section>
+
+  <!-- Backup -->
+  <section id="backup" class="tab" style="display:none">
+    <div class="card">
+      <h2>Backup / Restore</h2>
+      <div class="row">
+        <div>
+          <button class="btn" id="exportBtn">Export JSON</button>
+        </div>
+        <div>
+          <input type="file" id="importFile" accept="application/json">
+        </div>
+      </div>
+      <p class="small">Your data is stored locally on your device (localStorage). Export a backup periodically.</p>
+    </div>
+  </section>
+
+  <footer></footer>
+</main>
+
+<script>
+// --- PWA install ---
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('service-worker.js');
+  });
+}
+
+// --- Tabs ---
+const tabs = document.querySelectorAll('nav button');
+const sections = document.querySelectorAll('main .tab');
+tabs.forEach(btn => btn.addEventListener('click', () => {
+  tabs.forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  const id = btn.dataset.tab;
+  sections.forEach(s => s.style.display = (s.id===id) ? 'block' : 'none');
+}));
+
+// --- Progress storage ---
+const storeKey = 'dopey-progress';
+function loadProgress(){
+  try { return JSON.parse(localStorage.getItem(storeKey)) || []; }
+  catch { return []; }
+}
+function saveProgress(rows){ localStorage.setItem(storeKey, JSON.stringify(rows)); }
+
+function renderHistory(){
+  const tbody = document.querySelector('#history tbody');
+  tbody.innerHTML = '';
+  const rows = loadProgress();
+  rows.sort((a,b)=> (a.week||0)-(b.week||0));
+  const baseline = Number(document.getElementById('baseline').value)||2850;
+  rows.forEach((r, i) => {
+    const deficit = Math.round((baseline - (Number(r.cal)||0)));
+    const fat = ((deficit*7)/3500).toFixed(2);
+    const tr = document.createElement('tr');
+    tr.innerHTML = `<td>${r.week||''}</td><td>${r.range||''}</td><td>${r.weight||''}</td>
+                    <td>${r.cal||''}</td><td>${deficit}</td><td>${fat}</td>
+                    <td><button class="btn danger" data-idx="${i}">Delete</button></td>`;
+    tbody.appendChild(tr);
+  });
+  tbody.querySelectorAll('button').forEach(btn=>btn.addEventListener('click', ()=>{
+    const rows = loadProgress();
+    rows.splice(Number(btn.dataset.idx),1);
+    saveProgress(rows); renderHistory();
+  }));
+}
+renderHistory();
+
+document.getElementById('saveProgress').addEventListener('click', ()=>{
+  const r = {
+    week: Number(document.getElementById('week').value),
+    range: document.getElementById('range').value,
+    weight: Number(document.getElementById('weight').value),
+    cal: Number(document.getElementById('cal').value)
+  };
+  const rows = loadProgress();
+  // update if same week exists
+  const idx = rows.findIndex(x=>x.week===r.week);
+  if (idx>=0) rows[idx]=r; else rows.push(r);
+  saveProgress(rows); renderHistory();
+});
+
+document.getElementById('baseline').addEventListener('change', renderHistory);
+
+// --- Workouts checklists ---
+const wkKeyA='dopey-sessionA', wkKeyB='dopey-sessionB', wkKeyBooster='dopey-booster';
+const sessionA = [
+  "Goblet Squat — 3x10",
+  "Romanian Deadlift — 3x10",
+  "Step-ups — 2x10 each",
+  "Plank Row (Renegade) — 3x12",
+  "Dead Bug — 3x12",
+  "Hanging Knee Raise — 3x10",
+  "Farmer Carry — 2x30s"
+];
+const sessionB = [
+  "Dumbbell Bench Press — 3x10",
+  "Lat Pulldown — 3x10",
+  "Seated Row — 3x10",
+  "Bulgarian Split Squat — 2x10 each",
+  "Side Plank w/ Hip Lift — 3x30s/side",
+  "Pallof Press — 3x12",
+  "Stir-the-Pot / Ball Rollout — 3x12"
+];
+const booster = [
+  "Dead Bug — 40s",
+  "Side Plank Hip Lifts (R) — 40s",
+  "Side Plank Hip Lifts (L) — 40s",
+  "Bird Dog (Alt) — 40s",
+  "Reverse Crunch / Toe Taps — 40s",
+  "Plank Shoulder Taps — 40s"
+];
+
+function loadList(key){ try{ return JSON.parse(localStorage.getItem(key))||{} }catch{ return {} } }
+function saveList(key,val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+function renderChecklist(id, items, key){
+  const ul = document.getElementById(id);
+  ul.innerHTML = '';
+  const state = loadList(key);
+  items.forEach((txt, idx)=>{
+    const li = document.createElement('li'); li.style.margin='6px 0';
+    const idc = `${key}-${idx}`;
+    li.innerHTML = `<label style="display:flex;gap:8px;align-items:center">
+        <input type="checkbox" id="${idc}" ${state[idx]?'checked':''}>
+        <span>${txt}</span>
+      </label>`;
+    ul.appendChild(li);
+    li.querySelector('input').addEventListener('change', (e)=>{
+      const st = loadList(key); st[idx]=e.target.checked; saveList(key, st);
+    });
+  });
+}
+renderChecklist('sessionA', sessionA, wkKeyA);
+renderChecklist('sessionB', sessionB, wkKeyB);
+renderChecklist('booster', booster, wkKeyBooster);
+
+// --- Interval Timer ---
+let t=null, mode='work', remain=40, round=1;
+function updateTimer(){
+  const m = String(Math.floor(remain/60)).padStart(2,'0');
+  const s = String(remain%60).padStart(2,'0');
+  document.getElementById('timer').textContent = `${m}:${s}`;
+}
+function stopTimer(){ if(t){ clearInterval(t); t=null; } }
+function resetTimer(){
+  stopTimer();
+  mode='work'; round=1;
+  remain=Number(document.getElementById('workSec').value)||40;
+  document.getElementById('phase').textContent = `Ready`;
+  updateTimer();
+}
+function tick(){
+  remain--;
+  if(remain<=0){
+    if(mode==='work'){
+      mode='rest';
+      remain=Number(document.getElementById('restSec').value)||15;
+      document.getElementById('phase').textContent = `Rest — Round ${round}`;
+    }else{
+      // finished rest, next round or end
+      const R = Number(document.getElementById('rounds').value)||2;
+      if(round>=R){ stopTimer(); document.getElementById('phase').textContent='Done!'; return; }
+      round++; mode='work';
+      remain=Number(document.getElementById('workSec').value)||40;
+      document.getElementById('phase').textContent = `Work — Round ${round}`;
+    }
+  }
+  updateTimer();
+}
+document.getElementById('startTimer').addEventListener('click', ()=>{
+  if(t) return;
+  document.getElementById('phase').textContent = `Work — Round ${round}`;
+  t=setInterval(tick,1000);
+});
+document.getElementById('stopTimer').addEventListener('click', stopTimer);
+document.getElementById('resetTimer').addEventListener('click', resetTimer);
+resetTimer();
+
+// --- Backup/Restore ---
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const data = {
+    baseline: Number(document.getElementById('baseline').value)||2850,
+    progress: loadProgress(),
+    A: loadList(wkKeyA),
+    B: loadList(wkKeyB),
+    booster: loadList(wkKeyBooster)
+  };
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'dopey_planner_backup.json';
+  a.click();
+  URL.revokeObjectURL(url);
+});
+document.getElementById('importFile').addEventListener('change', (e)=>{
+  const f = e.target.files[0]; if(!f) return;
+  const fr = new FileReader();
+  fr.onload = () => {
+    try{
+      const d = JSON.parse(fr.result);
+      if(d.baseline){ document.getElementById('baseline').value = d.baseline; }
+      if(Array.isArray(d.progress)){ saveProgress(d.progress); }
+      if(d.A) saveList(wkKeyA, d.A);
+      if(d.B) saveList(wkKeyB, d.B);
+      if(d.booster) saveList(wkKeyBooster, d.booster);
+      renderHistory();
+      renderChecklist('sessionA', sessionA, wkKeyA);
+      renderChecklist('sessionB', sessionB, wkKeyB);
+      renderChecklist('booster', booster, wkKeyBooster);
+      alert('Import complete!');
+    }catch(err){ alert('Invalid file.'); }
+  };
+  fr.readAsText(f);
+});
+</script>
+</body>
+</html>
